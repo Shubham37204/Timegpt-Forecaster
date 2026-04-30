@@ -5,7 +5,6 @@ import json
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
-
     nixtla_api_key: str
     app_env: str = "development"
     log_level: str = "INFO"
@@ -26,5 +25,7 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
        return self.app_env.lower() == "production"
         
-
 settings = Settings() 
+
+#what this file does
+#Loads settings from .env + gives them to your app
