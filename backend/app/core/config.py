@@ -5,7 +5,6 @@ import json
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
-    nixtla_api_key: str
     app_env: str = "development"
     log_level: str = "INFO"
     cache_ttl_seconds: int = 3600

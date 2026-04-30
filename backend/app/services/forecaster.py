@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 from typing import List
-
 from app.core import cache as cache_store
 from app.core.logging import get_logger
 from app.models.forecast import (
@@ -10,61 +9,51 @@ from app.models.forecast import (
     ModelResult,
 )
 from app.services.data_fetcher import fetch_stock_data, DataFetchError
-from app.services.timegpt_service import run_timegpt
+from app.services.prophet_service import run_prophet
 from app.services.baseline_model import run_baseline
 
 log = get_logger(__name__)
 
 
 async def run_forecast(req: ForecastRequest) -> ForecastResponse:
-    # 1. 🔹 Cache check
+
+    # 1. Cache check
     if req.use_cache:
         cached = cache_store.get_cached(req.ticker, req.horizon, req.period)
-
         if cached is not None:
             log.info("cache_returned", ticker=req.ticker)
-
-            # ❗ Fix: override from_cache safely
             return ForecastResponse(**{**cached, "from_cache": True})
 
-    # 2. 🔹 Fetch data (let DataFetchError propagate)
+    # 2. Fetch data
     df, meta = fetch_stock_data(req.ticker, req.period)
 
-    # 3. 🔹 Build historical (last 30 rows)
-    hist_df = df.tail(30)
-
+    # 3. Build historical (last 30 rows)
     historical: List[ForecastPoint] = [
-        ForecastPoint(
-            date=str(row["ds"])[:10],
-            value=float(row["y"]),
-        )
-        for _, row in hist_df.iterrows()
+        ForecastPoint(date=str(row["ds"])[:10], value=float(row["y"]))
+        for _, row in df.tail(30).iterrows()
     ]
 
-    # 4. 🔹 Run models
+    # 4. Run models
     results: List[ModelResult] = []
 
     if req.model in ("baseline", "both"):
         baseline_res = run_baseline(df, req.horizon)
         results.append(baseline_res)
 
-    if req.model in ("timegpt", "both"):
+    if req.model in ("prophet", "both"):
         try:
-            tgpt_res = run_timegpt(df, req.horizon)
-            results.append(tgpt_res)
+            prophet_res = run_prophet(df, req.horizon)
+            results.append(prophet_res)
         except RuntimeError as e:
-            log.warning("timegpt_failed_fallback", error=str(e))
+            log.warning("prophet_failed_fallback", error=str(e))
+            results.append(ModelResult(
+                model_name="prophet",
+                forecast=[],
+                mae=None,
+                mape=None,
+            ))
 
-            results.append(
-                ModelResult(
-                    model_name="timegpt-1",
-                    forecast=[],
-                    mae=None,
-                    mape=None,
-                )
-            )
-
-    # 5. 🔹 Build response
+    # 5. Build response
     response = ForecastResponse(
         ticker=req.ticker,
         generated_at=datetime.now(timezone.utc).isoformat(),
@@ -75,7 +64,7 @@ async def run_forecast(req: ForecastRequest) -> ForecastResponse:
         from_cache=False,
     )
 
-    # 6. 🔹 Cache store (only if meaningful results)
+    # 6. Cache store
     if req.use_cache and any(r.forecast for r in results):
         cache_store.set_cached(
             req.ticker,
@@ -84,7 +73,7 @@ async def run_forecast(req: ForecastRequest) -> ForecastResponse:
             response.model_dump(),
         )
 
-    # 7. 🔹 Return
+    # 7. Return
     return response
 
 #What this file does

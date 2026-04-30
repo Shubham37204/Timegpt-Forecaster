@@ -7,7 +7,7 @@ class ForecastRequest(BaseModel):
     horizon: int = Field(default=7, ge=1, le=90)
     period: Literal["1mo", "3mo", "6mo", "1y", "2y"] = "6mo"
     use_cache: bool = True
-    model: Literal["timegpt", "baseline", "both"] = "both"
+    model: Literal["prophet", "baseline", "both"] = "both"
 
     @field_validator("ticker")
     @classmethod
@@ -24,6 +24,7 @@ class ForecastPoint(BaseModel):
     hi_80: Optional[float] = None
 
 class ModelResult(BaseModel):
+    model_config = {"protected_namespaces": ()}  
     model_name: str
     forecast: List[ForecastPoint]
     mae: Optional[float] = None
