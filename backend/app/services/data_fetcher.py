@@ -4,7 +4,6 @@ from typing import Tuple
 from app.core.logging import get_logger
 
 log = get_logger(__name__)
-
 MIN_ROWS = 30
 
 
