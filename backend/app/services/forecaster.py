@@ -29,7 +29,8 @@ async def run_forecast(req: ForecastRequest) -> ForecastResponse:
 
     # 3. Build historical (last 30 rows)
     historical: List[ForecastPoint] = [
-        ForecastPoint(date=str(row["ds"])[:10], value=float(row["y"]))
+        ForecastPoint(date=str(row["ds"])[:10],
+                      value=round(float(row["y"]), 2))
         for _, row in df.tail(30).iterrows()
     ]
 
@@ -76,6 +77,6 @@ async def run_forecast(req: ForecastRequest) -> ForecastResponse:
     # 7. Return
     return response
 
-#What this file does
-#forecaster.py = takes a request → runs everything → returns final result
-#forecaster.py = orchestrator that connects cache + data + models and produces final output
+# What this file does
+# forecaster.py = takes a request → runs everything → returns final result
+# forecaster.py = orchestrator that connects cache + data + models and produces final output

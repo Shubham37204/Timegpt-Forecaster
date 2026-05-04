@@ -46,9 +46,9 @@ def run_prophet(df: pd.DataFrame, horizon: int) -> ModelResult:
             points.append(
                 ForecastPoint(
                     date=str(row["ds"])[:10],
-                    value=float(row["yhat"]),
-                    lo_80=float(row["yhat_lower"]) if "yhat_lower" in row else None,
-                    hi_80=float(row["yhat_upper"]) if "yhat_upper" in row else None,
+                    value=round(float(row["yhat"]), 2),
+                    lo_80=round(float(row["yhat_lower"]), 2),
+                    hi_80=round(float(row["yhat_upper"]), 2),
                 )
             )
 
@@ -63,7 +63,7 @@ def run_prophet(df: pd.DataFrame, horizon: int) -> ModelResult:
         log.error("prophet_failed", error=str(e))
 
         raise RuntimeError(f"Prophet failed: {e}") from e
-    
+
 
 # What this file does (simple)
 # run_prophet = smarter forecasting model (trend + seasonality)
